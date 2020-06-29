@@ -2,204 +2,77 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Title</title>
+    <title>Oneten</title>
+    <style>
+        html {
+            height: 100%;
+        }
+
+        body, input {
+            font: 11pt "Georgia", sans-serif;
+        }
+
+        body {
+            margin: 1em;
+            background-color: #FEE140;
+            background-image: linear-gradient(180deg, #FEE140 0%, #FA709A 100%);
+            background-repeat: no-repeat;
+        }
+
+        textarea {
+            background: transparent;
+        }
+
+        input {
+            background: transparent;
+        }
+
+        input[type=number] {
+            border: none;
+            border-bottom: 1px solid #333;
+        }
+
+        label {
+            display: block;
+            margin-bottom: .45em;
+        }
+    </style>
 </head>
 <body>
+<div style="display: flex">
+    <div>
+        <label>
+            Choose (or drag in) an audio file your browser can decode.
+            <input type="file" id="finput" onchange="loadFile(this.files[0])">
+        </label>
+        <label>
+            Then hit
+            <button onclick="go()" id="go-button" disabled>Play</button>
+            .
+        </label>
+            <label>
+                If the thing seems to be detecting spurious beats, tweak this threshold slider:
+                <input type="range" id="threshold" min="0" max="1" step="0.01" value="0.55">
+            </label>
+            <label>
+                You can also go wild and tune the adjustment speed:
+                <input type="range" id="adj-speed" min="0" max="15" step="0.05" value="1">
+            </label>
+            <label>
+                Or the smoothing factor for detection:
+                <input type="range" id="smooth" min="1" max="25" step="1" value="5">
+            </label>
+            <label>
+                If you really need to, you can also set the target BPM:
+                <input type="number" id="target-bpm" min="20" max="200" step="1" value="110">
+            </label>
 
-<button onclick="go()" style="font-size: 20pt" id="go-button" disabled>Go</button>
-<br>
-<canvas id="c" width="500" height="500"></canvas>
-<br>
-<textarea id="ta" cols="50" rows="20"></textarea>
+    </div>
+    <canvas id="c" width="700" height="500" style="border: 1px solid orangered"></canvas>
+    <textarea id="ta" cols="50" rows="20" style="flex: 1" readonly></textarea>
+</div>
 
 <script src="cbuffer.js"></script>
-<script src="pid.js"></script>
-<script>
-  var canvas = document.getElementById("c");
-  var textArea = document.getElementById("ta");
-  var audioCtx = new AudioContext();
-  var gfxCtx = canvas.getContext("2d");
-  var srcNode = audioCtx.createBufferSource();
-  var filter1 = audioCtx.createBiquadFilter();
-  filter1.frequency.value = 150;
-  filter1.Q.value = 1;
-  filter1.type = "lowpass";
-  srcNode.connect(filter1);
-  var filter2 = audioCtx.createBiquadFilter();
-  filter2.frequency.value = 100;
-  filter2.Q.value = 1;
-  filter2.type = "highpass";
-  filter1.connect(filter2);
-
-  var analyzer = audioCtx.createAnalyser();
-  analyzer.fftSize = 256;
-  analyzer.smoothingTimeConstant = 0.5;
-  filter2.connect(analyzer);
-
-  srcNode.connect(audioCtx.destination);
-  var data = new Uint8Array(analyzer.fftSize);
-
-  var peakRingBuffer = new CBuffer(500);
-  var bpmRingBuffer = new CBuffer(300);
-  var peakIndex = 0;
-
-  const bpmPid = new PIDController(0.25, 0.01, 0.01);
-  let targetBpm = 110;
-  bpmPid.setTarget(targetBpm);
-
-  let currentBpm = 0;
-
-  function getPopFreq(array) {
-    const counter = {};
-    array.forEach(a => counter[a] = (counter[a] || 0) + 1);
-    return counter;
-  }
-
-
-  function rms(arr) {
-    const sum = arr.map((val) => (val * val)).reduce((acum, val) => (acum + val));
-    return Math.sqrt(sum / arr.length);
-  }
-
-  function average(arr) {
-    const sum = arr.reduce((acum, val) => (acum + val), 0);
-    return sum / arr.length;
-  }
-
-  function getLookbackY(value, max) {
-    return 500 - (value / max) * 500;
-  }
-
-  function analyzeLookback(lookback) {
-    const lookbackValues = lookback.map(v => v.value);
-    const threshold = average(lookbackValues);
-    const max = Math.max.apply(null, lookbackValues);
-    var inPeak = false;
-    var peakSamples = [];
-    var barW = Math.max(1, 500 / lookback.length);
-    gfxCtx.strokeStyle = "blue";
-    gfxCtx.lineWidth = 1;
-    var thresholdLineY = getLookbackY(threshold, max);
-    gfxCtx.beginPath();
-    gfxCtx.moveTo(0, thresholdLineY);
-    gfxCtx.lineTo(500, thresholdLineY);
-    gfxCtx.stroke();
-
-    for (var i = 0; i < lookback.length; i++) {
-      const sample = lookback[i];
-      const peaky = sample.value > threshold;
-      let ch = ' ';
-      if (peaky) {
-        if (!inPeak) {
-          peakSamples.push(sample);
-          inPeak = true;
-          ch = '!';
-        } else {
-          ch = '.';
-        }
-      } else {
-        if (inPeak) {
-          inPeak = false;
-          ch = '-';
-        }
-      }
-      // const textLine = `${sample.index} ${sample.value.toFixed(2)} ${peaky ? '!' : '.'} ${ch} ${"#".repeat(30 * sample.value)}`;
-      // peakTextLines.push(textLine);
-
-      gfxCtx.fillStyle = ch == "!" ? "orange" : "cyan";
-      const barY = 500 - getLookbackY(sample.value, max);
-      gfxCtx.fillRect(i * barW, 500 - barY, barW, 500);
-    }
-    var intraPeakTimes = [];
-    for (var i = 1; i < peakSamples.length; i++) {
-      var intraTime = peakSamples[i].time - peakSamples[i - 1].time;
-      intraPeakTimes.push(intraTime);
-    }
-    var intraPeakBPM = intraPeakTimes.map(t => {
-      let guessedBpm = t * 60 * 8;
-      if (guessedBpm > 180) guessedBpm /= 2;
-      else if (guessedBpm < 70) guessedBpm *= 2;
-      return Math.round(guessedBpm);
-    });
-    // logBuffer += JSON.stringify(intraPeakTimes) + "\n";
-    logBuffer += JSON.stringify(intraPeakBPM) + "\n";
-    // + "\n" + peakTextLines.slice(10).join("\n");
-    return intraPeakBPM;
-  }
-
-  var logBuffer = "";
-
-  function loop() {
-    logBuffer = "";
-    gfxCtx.clearRect(0, 0, 500, 500);
-    analyzer.getByteFrequencyData(data);
-    // var freqLines = [];
-    var nBinsUse = 5;
-    // var w = 40;
-    var peakSum = 0;
-    var lowpassMul = 0.1;
-    for (var i = 0; i < nBinsUse; i++) {
-      var binIndex = Math.floor(i / nBinsUse * (data.length * lowpassMul));
-      var level = data[binIndex] / 255;
-      peakSum += level;
-      gfxCtx.fillStyle = "red";
-      gfxCtx.fillRect(0, i * 10, level * 400, 9);
-    }
-    // freqTextArea.value = freqLines.join("\n");
-    // freqTextArea.rows = freqLines.length;
-
-    peakSum /= nBinsUse;
-    peakSum *= 2; // TODO: Autotune this modifier
-    peakSum = Math.pow(peakSum, 5);
-    peakSum = Math.min(peakSum, 1);
-
-    peakRingBuffer.push({ index: peakIndex++, time: audioCtx.currentTime, value: peakSum });
-
-
-    const lookbackLength = 256;
-    const lookback = peakRingBuffer.slice(peakRingBuffer.length - lookbackLength, peakRingBuffer.length);
-    const bpmGuesses = analyzeLookback(lookback);
-    bpmGuesses.forEach(bpm => bpmRingBuffer.push(bpm));
-    if (bpmRingBuffer.length) {
-      const bpmPop = Object.entries(getPopFreq(bpmRingBuffer)).sort((a, b) => b[1] - a[1]);
-      const mostLikelyBpm = parseInt(bpmPop[0][0]);
-      if (!currentBpm) {
-        currentBpm = mostLikelyBpm;
-      } else {
-        const smoothingFactor = 10;
-        currentBpm = (currentBpm * (smoothingFactor - 1) + mostLikelyBpm) / smoothingFactor;
-      }
-      //const correction = bpmPid.update(currentBpm);
-      // srcNode.playbackRate.value = Math.round(targetBpm / currentBpm * 100) / 100;
-      // if(currentBpm > targetBpm) {
-      //   audio.playbackRate -= 0.0001;
-      // } else {
-      //   audio.playbackRate += 0.0001;
-      // }
-
-      logBuffer += `\nMost likely: ${mostLikelyBpm}\nSmoothed: ${currentBpm.toFixed(2)}\nPlayback Rate: ${srcNode.playbackRate.value}\n${JSON.stringify(bpmPop)}`;
-    }
-    textArea.value = logBuffer;
-  }
-
-  var url = "./07%20-%20The%20Rurals%20-%20Sweeter%20Sound.mp3";
-  fetch(url).then(r => r.arrayBuffer()).then(async arrBuf => {
-    srcNode.buffer = await audioCtx.decodeAudioData(arrBuf);
-    document.getElementById("go-button").disabled = false;
-  });
-
-  var started = false;
-
-  function go() {
-    if (started) return;
-    setInterval(loop, 1000 / 60);
-    audioCtx.resume();
-    srcNode.start();
-    started = true;
-  }
-
-
-</script>
-
+<script src="magic.js"></script>
 </body>
 </html>
