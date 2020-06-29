@@ -10,17 +10,13 @@
 <br>
 <canvas id="c" width="500" height="500"></canvas>
 <br>
-<textarea id="freqa" cols="50" rows="20"></textarea>
-<textarea id="peaka" cols="50" rows="20"></textarea>
-<textarea id="bpma" cols="50" rows="20"></textarea>
+<textarea id="ta" cols="50" rows="20"></textarea>
 
 <script src="cbuffer.js"></script>
 <script src="pid.js"></script>
 <script>
   var canvas = document.getElementById("c");
-  var freqTextArea = document.getElementById("freqa");
-  var peakTextArea = document.getElementById("peaka");
-  var bpmTextArea = document.getElementById("bpma");
+  var textArea = document.getElementById("ta");
   var audioCtx = new AudioContext();
   var gfxCtx = canvas.getContext("2d");
   var srcNode = audioCtx.createBufferSource();
@@ -40,7 +36,7 @@
   analyzer.smoothingTimeConstant = 0.5;
   filter2.connect(analyzer);
 
-  filter2.connect(audioCtx.destination);
+  srcNode.connect(audioCtx.destination);
   var data = new Uint8Array(analyzer.fftSize);
 
   var peakRingBuffer = new CBuffer(500);
@@ -121,16 +117,20 @@
     }
     var intraPeakBPM = intraPeakTimes.map(t => {
       let guessedBpm = t * 60 * 8;
-      if (guessedBpm > 160) guessedBpm /= 2;
+      if (guessedBpm > 180) guessedBpm /= 2;
       else if (guessedBpm < 70) guessedBpm *= 2;
       return Math.round(guessedBpm);
     });
-    peakTextArea.value = JSON.stringify(intraPeakTimes) + "\n" + JSON.stringify(intraPeakBPM);
+    // logBuffer += JSON.stringify(intraPeakTimes) + "\n";
+    logBuffer += JSON.stringify(intraPeakBPM) + "\n";
     // + "\n" + peakTextLines.slice(10).join("\n");
     return intraPeakBPM;
   }
 
+  var logBuffer = "";
+
   function loop() {
+    logBuffer = "";
     gfxCtx.clearRect(0, 0, 500, 500);
     analyzer.getByteFrequencyData(data);
     // var freqLines = [];
@@ -163,7 +163,6 @@
     if (bpmRingBuffer.length) {
       const bpmPop = Object.entries(getPopFreq(bpmRingBuffer)).sort((a, b) => b[1] - a[1]);
       const mostLikelyBpm = parseInt(bpmPop[0][0]);
-      bpmTextArea.value = `Most likely: ${mostLikelyBpm} \n\n${JSON.stringify(bpmPop)}`;
       if (!currentBpm) {
         currentBpm = mostLikelyBpm;
       } else {
@@ -178,8 +177,9 @@
       //   audio.playbackRate += 0.0001;
       // }
 
-      bpmTextArea.value = `Most likely: ${mostLikelyBpm}\nSmoothed: ${currentBpm.toFixed(2)}\nPlayback Rate: ${srcNode.playbackRate.value}\n${JSON.stringify(bpmPop)}`;
+      logBuffer += `\nMost likely: ${mostLikelyBpm}\nSmoothed: ${currentBpm.toFixed(2)}\nPlayback Rate: ${srcNode.playbackRate.value}\n${JSON.stringify(bpmPop)}`;
     }
+    textArea.value = logBuffer;
   }
 
   var url = "./07%20-%20The%20Rurals%20-%20Sweeter%20Sound.mp3";
