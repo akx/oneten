@@ -30,8 +30,9 @@ filter2.connect(analyzer);
 let srcNode = null;
 const fftData = new Uint8Array(analyzer.fftSize);
 
-const peakRingBuffer = new CBuffer(500);
+const peakRingBuffer = new CBuffer(160);
 const bpmRingBuffer = new CBuffer(300);
+const playbackRateRingBuffer = new CBuffer(500);
 var peakIndex = 0;
 let currentBpm = 0;
 
@@ -169,6 +170,24 @@ function getPeak(fftData) {
   return peakSum;
 }
 
+function graphPlaybackRates() {
+  const playbackRates = playbackRateRingBuffer.slice();
+
+  gfxCtx.beginPath();
+  for (let i = 0; i < playbackRates.length; i++) {
+    const rate = playbackRates[i] - 1.0;
+    const x = canvas.width - (i / playbackRates.length) * canvas.width;
+    const y = canvas.height / 2 - (rate * canvas.height) / 2;
+    if (i === 0) {
+      gfxCtx.moveTo(x, y);
+    } else {
+      gfxCtx.lineTo(x, y);
+    }
+  }
+  gfxCtx.strokeStyle = "rgba(255, 128, 128, 0.5)";
+  gfxCtx.stroke();
+}
+
 function loop() {
   if (!started) return;
   const targetBpm = targetBpmSlider.valueAsNumber || 110;
@@ -183,13 +202,11 @@ function loop() {
     time: audioCtx.currentTime,
     value: peakSum,
   });
-  const lookbackLength = 128;
-  const lookback = peakRingBuffer.slice(
-    peakRingBuffer.length - lookbackLength,
-    peakRingBuffer.length
-  );
+  const lookback = peakRingBuffer.slice();
   const bpmGuesses = analyzeLookback(lookback, minBpm, maxBpm);
   bpmGuesses.forEach((bpm) => bpmRingBuffer.push(bpm));
+  graphPlaybackRates();
+
   if (bpmRingBuffer.length) {
     const bpmPop = Object.entries(getPopFreq(bpmRingBuffer)).sort(
       (a, b) => b[1] - a[1]
@@ -214,6 +231,7 @@ function loop() {
       minPlaybackRate,
       maxPlaybackRate
     );
+    playbackRateRingBuffer.push(srcNode.playbackRate.value);
 
     logBuffer += `
 Most likely current BPM: ${mostLikelyBpm} (range ${minBpm}..${maxBpm})
