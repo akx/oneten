@@ -226,6 +226,19 @@ Playback Rate: ${playbackRate.toFixed(3)}
   textArea.value = logBuffer;
 }
 
+function resetPlaybackRate() {
+  srcNode.playbackRate.value = 1;
+}
+
+function resetBPM() {
+  currentBpm = targetBpmSlider.valueAsNumber || 110;
+}
+
+function resetBuffers() {
+  bpmRingBuffer.empty();
+  peakRingBuffer.empty();
+}
+
 function setGoDisabled(flag) {
   document.getElementById("go-button").disabled = flag;
 }

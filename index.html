@@ -13,7 +13,8 @@
       }
 
       body,
-      input {
+      input,
+      button {
         font: 11pt "Georgia", sans-serif;
       }
 
@@ -42,6 +43,13 @@
         border-bottom: 1px solid #333;
       }
 
+      button {
+        background: transparent;
+        padding: 2px;
+        border: none;
+        border-bottom: 1px dotted #333;
+      }
+
       label {
         display: block;
         margin-bottom: 0.45em;
@@ -52,7 +60,7 @@
     <div
       style="display: flex; flex-wrap: wrap; justify-content: space-between;"
     >
-      <div>
+      <div style="max-width: 650px;">
         <label>
           Choose (or drag in) an audio file your browser can decode:
           <input type="file" id="finput" onchange="loadFile(this.files[0])" />
@@ -99,6 +107,14 @@
             step="1"
             value="110"
           />
+        </label>
+        <label>
+          If everything seems out of whack, you can:
+          <button onclick="resetPlaybackRate()">reset the playback rate</button
+          >, <button onclick="resetBPM()">reset the smoothed BPM</button>, or
+          <button onclick="resetBuffers()">
+            reset the beat detection ring buffers</button
+          >...
         </label>
         <i>
           An <a href="https://twitter.com/akx">@akx</a> joint.
