@@ -1,78 +1,111 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
+  <head>
+    <meta charset="UTF-8" />
     <title>Oneten</title>
     <style>
-        html {
-            height: 100%;
-        }
+      html {
+        height: 100%;
+      }
 
-        body, input {
-            font: 11pt "Georgia", sans-serif;
-        }
+      body,
+      input {
+        font: 11pt "Georgia", sans-serif;
+      }
 
-        body {
-            margin: 1em;
-            background-color: #FEE140;
-            background-image: linear-gradient(180deg, #FEE140 0%, #FA709A 100%);
-            background-repeat: no-repeat;
-        }
+      body {
+        margin: 1em;
+        background-color: #fee140;
+        background-image: linear-gradient(180deg, #fee140 0%, #fa709a 100%);
+        background-repeat: no-repeat;
+      }
 
-        textarea {
-            background: transparent;
-        }
+      textarea {
+        background: transparent;
+      }
 
-        input {
-            background: transparent;
-        }
+      input {
+        background: transparent;
+      }
 
-        input[type=number] {
-            border: none;
-            border-bottom: 1px solid #333;
-        }
+      input[type="number"] {
+        border: none;
+        border-bottom: 1px solid #333;
+      }
 
-        label {
-            display: block;
-            margin-bottom: .45em;
-        }
+      label {
+        display: block;
+        margin-bottom: 0.45em;
+      }
     </style>
-</head>
-<body>
-<div style="display: flex">
-    <div>
+  </head>
+  <body>
+    <div style="display: flex;">
+      <div>
         <label>
-            Choose (or drag in) an audio file your browser can decode.
-            <input type="file" id="finput" onchange="loadFile(this.files[0])">
+          Choose (or drag in) an audio file your browser can decode.
+          <input type="file" id="finput" onchange="loadFile(this.files[0])" />
         </label>
         <label>
-            Then hit
-            <button onclick="go()" id="go-button" disabled>Play</button>
-            .
+          Then hit
+          <button onclick="go()" id="go-button" disabled>Play</button>
+          .
         </label>
-            <label>
-                If the thing seems to be detecting spurious beats, tweak this threshold slider:
-                <input type="range" id="threshold" min="0" max="1" step="0.01" value="0.55">
-            </label>
-            <label>
-                You can also go wild and tune the adjustment speed:
-                <input type="range" id="adj-speed" min="0" max="15" step="0.05" value="1">
-            </label>
-            <label>
-                Or the smoothing factor for detection:
-                <input type="range" id="smooth" min="1" max="25" step="1" value="5">
-            </label>
-            <label>
-                If you really need to, you can also set the target BPM:
-                <input type="number" id="target-bpm" min="20" max="200" step="1" value="110">
-            </label>
-
+        <label>
+          If the thing seems to be detecting spurious beats, tweak this
+          threshold slider:
+          <input
+            type="range"
+            id="threshold"
+            min="0"
+            max="1"
+            step="0.01"
+            value="0.55"
+          />
+        </label>
+        <label>
+          You can also go wild and tune the adjustment speed:
+          <input
+            type="range"
+            id="adj-speed"
+            min="0"
+            max="15"
+            step="0.05"
+            value="1"
+          />
+        </label>
+        <label>
+          Or the smoothing factor for detection:
+          <input type="range" id="smooth" min="1" max="25" step="1" value="5" />
+        </label>
+        <label>
+          If you really need to, you can also set the target BPM:
+          <input
+            type="number"
+            id="target-bpm"
+            min="20"
+            max="200"
+            step="1"
+            value="110"
+          />
+        </label>
+      </div>
+      <canvas
+        id="c"
+        width="700"
+        height="500"
+        style="border: 1px solid orangered;"
+      ></canvas>
+      <textarea
+        id="ta"
+        cols="50"
+        rows="20"
+        style="flex: 1;"
+        readonly
+      ></textarea>
     </div>
-    <canvas id="c" width="700" height="500" style="border: 1px solid orangered"></canvas>
-    <textarea id="ta" cols="50" rows="20" style="flex: 1" readonly></textarea>
-</div>
 
-<script src="cbuffer.js"></script>
-<script src="magic.js"></script>
-</body>
+    <script src="cbuffer.js"></script>
+    <script src="magic.js"></script>
+  </body>
 </html>

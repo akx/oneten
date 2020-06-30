@@ -37,18 +37,17 @@ let currentBpm = 0;
 
 function getPopFreq(array) {
   const counter = {};
-  array.forEach(a => counter[a] = (counter[a] || 0) + 1);
+  array.forEach((a) => (counter[a] = (counter[a] || 0) + 1));
   return counter;
 }
 
-
 function rms(arr) {
-  const sum = arr.map((val) => (val * val)).reduce((acum, val) => (acum + val));
+  const sum = arr.map((val) => val * val).reduce((acum, val) => acum + val);
   return Math.sqrt(sum / arr.length);
 }
 
 function average(arr) {
-  const sum = arr.reduce((acum, val) => (acum + val), 0);
+  const sum = arr.reduce((acum, val) => acum + val, 0);
   return sum / arr.length;
 }
 
@@ -57,7 +56,7 @@ function getLookbackY(value, max) {
 }
 
 function analyzeLookback(lookback, minBpm, maxBpm) {
-  const lookbackValues = lookback.map(v => v.value);
+  const lookbackValues = lookback.map((v) => v.value);
   const max = Math.max.apply(null, lookbackValues);
   const threshold = max * thresholdSlider.valueAsNumber;
   //average(lookbackValues);
@@ -68,7 +67,7 @@ function analyzeLookback(lookback, minBpm, maxBpm) {
   var barW = Math.ceil(Math.max(1, canvas.width / lookback.length));
   gfxCtx.strokeStyle = "blue";
   gfxCtx.lineWidth = 1;
-  var thresholdLineY = Math.round(getLookbackY(threshold, max)) + .5;
+  var thresholdLineY = Math.round(getLookbackY(threshold, max)) + 0.5;
   gfxCtx.beginPath();
   gfxCtx.moveTo(0, thresholdLineY);
   gfxCtx.lineTo(canvas.width, thresholdLineY);
@@ -77,24 +76,24 @@ function analyzeLookback(lookback, minBpm, maxBpm) {
   for (let i = 0; i < lookback.length; i++) {
     const sample = lookback[i];
     const peaky = sample.value > threshold;
-    let ch = ' ';
+    let ch = " ";
     if (peaky) {
       if (!inPeak) {
         if (sample.time - lastPeakEnd < minIntraTime) {
-          ch = 'x';
+          ch = "x";
         } else {
           peakSamples.push(sample);
           inPeak = true;
-          ch = '!';
+          ch = "!";
         }
       } else {
-        ch = '.';
+        ch = ".";
       }
     } else {
       if (inPeak) {
         inPeak = false;
         lastPeakEnd = sample.time;
-        ch = '-';
+        ch = "-";
       }
     }
     // const textLine = `${sample.index} ${sample.value.toFixed(2)} ${peaky ? '!' : '.'} ${ch} ${"#".repeat(30 * sample.value)}`;
@@ -124,7 +123,7 @@ function analyzeLookback(lookback, minBpm, maxBpm) {
       intraPeakTimes.push(intraTime);
     }
   }
-  const intraPeakBPM = intraPeakTimes.map(t => {
+  const intraPeakBPM = intraPeakTimes.map((t) => {
     let guessedBpm = 60 / t;
     if (guessedBpm < minBpm) {
       while (guessedBpm < minBpm) {
@@ -156,7 +155,7 @@ function getPeak(data) {
   var peakSum = 0;
   var lowpassMul = 0.2;
   for (var i = 0; i < nBinsUse; i++) {
-    var binIndex = Math.floor(i / nBinsUse * (data.length * lowpassMul));
+    var binIndex = Math.floor((i / nBinsUse) * (data.length * lowpassMul));
     var level = data[binIndex] / 255;
     peakSum += level;
     gfxCtx.fillStyle = "red";
@@ -178,19 +177,29 @@ function loop() {
   gfxCtx.clearRect(0, 0, canvas.width, canvas.height);
   analyzer.getByteFrequencyData(data);
   const peakSum = getPeak(data);
-  peakRingBuffer.push({ index: peakIndex++, time: audioCtx.currentTime, value: peakSum });
+  peakRingBuffer.push({
+    index: peakIndex++,
+    time: audioCtx.currentTime,
+    value: peakSum,
+  });
   const lookbackLength = 128;
-  const lookback = peakRingBuffer.slice(peakRingBuffer.length - lookbackLength, peakRingBuffer.length);
+  const lookback = peakRingBuffer.slice(
+    peakRingBuffer.length - lookbackLength,
+    peakRingBuffer.length
+  );
   const bpmGuesses = analyzeLookback(lookback, minBpm, maxBpm);
-  bpmGuesses.forEach(bpm => bpmRingBuffer.push(bpm));
+  bpmGuesses.forEach((bpm) => bpmRingBuffer.push(bpm));
   if (bpmRingBuffer.length) {
-    const bpmPop = Object.entries(getPopFreq(bpmRingBuffer)).sort((a, b) => b[1] - a[1]);
+    const bpmPop = Object.entries(getPopFreq(bpmRingBuffer)).sort(
+      (a, b) => b[1] - a[1]
+    );
     const mostLikelyBpm = parseInt(bpmPop[0][0]);
     if (!currentBpm) {
       currentBpm = mostLikelyBpm;
     } else {
       const smoothingFactor = smoothSlider.valueAsNumber;
-      currentBpm = (currentBpm * (smoothingFactor - 1) + mostLikelyBpm) / smoothingFactor;
+      currentBpm =
+        (currentBpm * (smoothingFactor - 1) + mostLikelyBpm) / smoothingFactor;
     }
     //const correction = bpmPid.update(currentBpm);
     // srcNode.playbackRate.value = Math.round(targetBpm / currentBpm * 100) / 100;
@@ -199,13 +208,17 @@ function loop() {
       const finalAdjSpeed = 0.0001 * adjSpeedSlider.valueAsNumber;
       playbackRate += finalAdjSpeed * (currentBpm > targetBpm ? -1 : 1);
     }
-    srcNode.playbackRate.value = clamp(playbackRate, minPlaybackRate, maxPlaybackRate);
+    srcNode.playbackRate.value = clamp(
+      playbackRate,
+      minPlaybackRate,
+      maxPlaybackRate
+    );
 
     logBuffer += `
 Most likely current BPM: ${mostLikelyBpm} (range ${minBpm}..${maxBpm})
 Smoothed current BPM: ${currentBpm.toFixed(2)}
 Target BPM: ${targetBpm}
-Target drift: ${((currentBpm / targetBpm) - 1).toFixed(3)}
+Target drift: ${(currentBpm / targetBpm - 1).toFixed(3)}
 Playback Rate: ${playbackRate.toFixed(3)}
 `;
   }
@@ -218,11 +231,13 @@ function setGoDisabled(flag) {
 
 function defaultInit() {
   var url = "./07%20-%20The%20Rurals%20-%20Sweeter%20Sound.mp3";
-  fetch(url).then(r => r.arrayBuffer()).then(async arrBuf => {
-    srcNode.buffer = await audioCtx.decodeAudioData(arrBuf);
+  fetch(url)
+    .then((r) => r.arrayBuffer())
+    .then(async (arrBuf) => {
+      srcNode.buffer = await audioCtx.decodeAudioData(arrBuf);
 
-    setGoDisabled(false);
-  });
+      setGoDisabled(false);
+    });
 }
 
 function loadFile(file) {
@@ -247,5 +262,3 @@ function go() {
   srcNode.start();
   started = true;
 }
-
-
