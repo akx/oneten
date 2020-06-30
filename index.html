@@ -24,6 +24,11 @@
         background-repeat: no-repeat;
       }
 
+      textarea,
+      canvas {
+        margin: 0.5em;
+      }
+
       textarea {
         background: transparent;
       }
@@ -44,14 +49,16 @@
     </style>
   </head>
   <body>
-    <div style="display: flex; flex-wrap: wrap;">
+    <div
+      style="display: flex; flex-wrap: wrap; justify-content: space-between;"
+    >
       <div>
         <label>
-          Choose (or drag in) an audio file your browser can decode.
+          Choose (or drag in) an audio file your browser can decode:
           <input type="file" id="finput" onchange="loadFile(this.files[0])" />
         </label>
         <label>
-          Then hit
+          If that doesn't start the music, hit
           <button onclick="go()" id="go-button" disabled>Play</button>
           .
         </label>

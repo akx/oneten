@@ -1,22 +1,21 @@
 const minPlaybackRate = 0.35;
 const maxPlaybackRate = 1 / minPlaybackRate;
-const minIntraTime = 0.175;
+const minIntraTime = 0.15;
 
-var canvas = document.getElementById("c");
-var textArea = document.getElementById("ta");
-var thresholdSlider = document.getElementById("threshold");
-var adjSpeedSlider = document.getElementById("adj-speed");
-var smoothSlider = document.getElementById("smooth");
-var targetBpmSlider = document.getElementById("target-bpm");
-var gfxCtx = canvas.getContext("2d");
+const canvas = document.getElementById("c");
+const textArea = document.getElementById("ta");
+const thresholdSlider = document.getElementById("threshold");
+const adjSpeedSlider = document.getElementById("adj-speed");
+const smoothSlider = document.getElementById("smooth");
+const targetBpmSlider = document.getElementById("target-bpm");
+const gfxCtx = canvas.getContext("2d");
 
-var audioCtx = new AudioContext();
-var srcNode = audioCtx.createBufferSource();
+const audioCtx = new AudioContext();
+
 var filter1 = audioCtx.createBiquadFilter();
 filter1.frequency.value = 150;
 filter1.Q.value = 1;
 filter1.type = "lowpass";
-srcNode.connect(filter1);
 var filter2 = audioCtx.createBiquadFilter();
 filter2.frequency.value = 100;
 filter2.Q.value = 1;
@@ -28,11 +27,11 @@ analyzer.fftSize = 256;
 analyzer.smoothingTimeConstant = 0.1;
 filter2.connect(analyzer);
 
-srcNode.connect(audioCtx.destination);
-var data = new Uint8Array(analyzer.fftSize);
+let srcNode = null;
+const fftData = new Uint8Array(analyzer.fftSize);
 
-var peakRingBuffer = new CBuffer(500);
-var bpmRingBuffer = new CBuffer(300);
+const peakRingBuffer = new CBuffer(500);
+const bpmRingBuffer = new CBuffer(300);
 var peakIndex = 0;
 let currentBpm = 0;
 
@@ -151,13 +150,13 @@ function clamp(val, min, max) {
   return val;
 }
 
-function getPeak(data) {
+function getPeak(fftData) {
   var nBinsUse = 5;
   var peakSum = 0;
   var lowpassMul = 0.2;
   for (var i = 0; i < nBinsUse; i++) {
-    var binIndex = Math.floor((i / nBinsUse) * (data.length * lowpassMul));
-    var level = data[binIndex] / 255;
+    var binIndex = Math.floor((i / nBinsUse) * (fftData.length * lowpassMul));
+    var level = fftData[binIndex] / 255;
     peakSum += level;
     gfxCtx.fillStyle = "red";
     gfxCtx.fillRect(0, i * 10, level * 400, 9);
@@ -171,13 +170,14 @@ function getPeak(data) {
 }
 
 function loop() {
+  if (!started) return;
   const targetBpm = targetBpmSlider.valueAsNumber || 110;
   const minBpm = Math.round(Math.max(75, targetBpm / 2));
   const maxBpm = Math.round(Math.min(210, targetBpm * 2));
   logBuffer = "";
   gfxCtx.clearRect(0, 0, canvas.width, canvas.height);
-  analyzer.getByteFrequencyData(data);
-  const peakSum = getPeak(data);
+  analyzer.getByteFrequencyData(fftData);
+  const peakSum = getPeak(fftData);
   peakRingBuffer.push({
     index: peakIndex++,
     time: audioCtx.currentTime,
@@ -235,10 +235,21 @@ function defaultInit() {
   fetch(url)
     .then((r) => r.arrayBuffer())
     .then(async (arrBuf) => {
-      srcNode.buffer = await audioCtx.decodeAudioData(arrBuf);
-
+      await loadAudioBuffer(arrBuf);
       setGoDisabled(false);
     });
+}
+
+async function loadAudioBuffer(arrayBuffer) {
+  const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+  if (srcNode) {
+    srcNode.disconnect();
+    srcNode = null;
+  }
+  srcNode = audioCtx.createBufferSource();
+  srcNode.connect(filter1);
+  srcNode.connect(audioCtx.destination);
+  srcNode.buffer = audioBuffer;
 }
 
 function loadFile(file) {
@@ -247,8 +258,9 @@ function loadFile(file) {
   setGoDisabled(true);
   fr.readAsArrayBuffer(file);
   fr.onload = async () => {
-    srcNode.buffer = await audioCtx.decodeAudioData(fr.result);
+    await loadAudioBuffer(fr.result);
     setGoDisabled(false);
+    go();
   };
 }
 
@@ -256,9 +268,9 @@ function loadFile(file) {
 
 var started = false;
 
+setInterval(loop, 1000 / 50);
+
 function go() {
-  if (started) return;
-  setInterval(loop, 1000 / 60);
   audioCtx.resume();
   srcNode.start();
   started = true;
