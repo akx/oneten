@@ -172,8 +172,8 @@ function getPeak(fftData) {
 function loop() {
   if (!started) return;
   const targetBpm = targetBpmSlider.valueAsNumber || 110;
-  const minBpm = Math.round(Math.max(75, targetBpm / 2));
-  const maxBpm = Math.round(Math.min(210, targetBpm * 2));
+  const minBpm = Math.round(Math.max(75, targetBpm / 1.9));
+  const maxBpm = Math.round(Math.min(210, targetBpm * 1.9));
   logBuffer = "";
   gfxCtx.clearRect(0, 0, canvas.width, canvas.height);
   analyzer.getByteFrequencyData(fftData);
