@@ -8,8 +8,9 @@ var thresholdSlider = document.getElementById("threshold");
 var adjSpeedSlider = document.getElementById("adj-speed");
 var smoothSlider = document.getElementById("smooth");
 var targetBpmSlider = document.getElementById("target-bpm");
-var audioCtx = new AudioContext();
 var gfxCtx = canvas.getContext("2d");
+
+var audioCtx = new AudioContext();
 var srcNode = audioCtx.createBufferSource();
 var filter1 = audioCtx.createBiquadFilter();
 filter1.frequency.value = 150;

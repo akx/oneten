@@ -8,6 +8,10 @@
         height: 100%;
       }
 
+      a {
+        color: #335;
+      }
+
       body,
       input {
         font: 11pt "Georgia", sans-serif;
@@ -40,7 +44,7 @@
     </style>
   </head>
   <body>
-    <div style="display: flex;">
+    <div style="display: flex; flex-wrap: wrap;">
       <div>
         <label>
           Choose (or drag in) an audio file your browser can decode.
@@ -89,6 +93,10 @@
             value="110"
           />
         </label>
+        <i>
+          An <a href="https://twitter.com/akx">@akx</a> joint.
+          <a href="https://github.com/akx/oneten">Open source</a>.
+        </i>
       </div>
       <canvas
         id="c"
@@ -100,7 +108,7 @@
         id="ta"
         cols="50"
         rows="20"
-        style="flex: 1;"
+        style="flex: 1; min-width: 200px;"
         readonly
       ></textarea>
     </div>
